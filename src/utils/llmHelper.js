@@ -23,32 +23,52 @@ export async function categorizeMessage(message) {
       model: "llama-3.3-70b-versatile",
       messages: [
         {
+          role: "system",
+          content: `You are a customer support triage assistant. Classify the incoming message into exactly one of these categories:
+- Billing Issue
+- Technical Problem
+- Feature Request
+- General Inquiry
+
+Reply with ONLY a valid JSON object in this exact format, no other text:
+{"category": "<one of the four categories above>", "reasoning": "<one sentence explaining why>"}`
+        },
+        {
           role: "user",
-          content: `Categorize this customer support message: ${message}`
+          content: message
         }
       ],
-      temperature: 0.7,
+      temperature: 0.2,
     });
 
     const content = response.choices[0].message.content;
-    
-    const lines = content.split('\n');
+
     let category = "Unknown";
     let reasoning = content;
-    
-    if (content.toLowerCase().includes('billing')) {
-      category = "Billing Issue";
-    } else if (content.toLowerCase().includes('technical') || content.toLowerCase().includes('bug')) {
-      category = "Technical Problem";
-    } else if (content.toLowerCase().includes('feature')) {
-      category = "Feature Request";
-    } else if (content.toLowerCase().includes('inquiry') || content.toLowerCase().includes('question')) {
-      category = "General Inquiry";
+
+    try {
+      const parsed = JSON.parse(content);
+      const validCategories = ["Billing Issue", "Technical Problem", "Feature Request", "General Inquiry"];
+      if (validCategories.includes(parsed.category)) {
+        category = parsed.category;
+      }
+      reasoning = parsed.reasoning || content;
+    } catch {
+      // If the model didn't return valid JSON, fall back to keyword scan
+      if (content.toLowerCase().includes('billing')) {
+        category = "Billing Issue";
+      } else if (content.toLowerCase().includes('technical') || content.toLowerCase().includes('bug')) {
+        category = "Technical Problem";
+      } else if (content.toLowerCase().includes('feature')) {
+        category = "Feature Request";
+      } else if (content.toLowerCase().includes('inquiry') || content.toLowerCase().includes('question')) {
+        category = "General Inquiry";
+      }
     }
-    
+
     return {
       category,
-      reasoning: content
+      reasoning
     };
   } catch (error) {
     console.warn('Groq API failed, using mock response:', error.message);

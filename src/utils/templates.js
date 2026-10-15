@@ -6,7 +6,7 @@ const actionTemplates = {
   "Billing Issue": "Ask user to check billing portal.",
   "Technical Problem": "Suggest user to restart their browser.",
   "General Inquiry": "Respond with FAQ link.",
-  "Feature Request": "Ask user to check billing portal.",
+  "Feature Request": "Log feature request and forward to product team.",
   "Unknown": "Review manually."
 }
 
@@ -39,5 +39,9 @@ export function getAvailableCategories() {
  * @returns {boolean} - Whether to escalate
  */
 export function shouldEscalate(category, urgency, message) {
-  return message.length > 100
+  // Escalate High-urgency technical problems or billing issues
+  if (urgency === "High" && (category === "Technical Problem" || category === "Billing Issue")) {
+    return true
+  }
+  return false
 }
